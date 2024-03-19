@@ -2,4 +2,3 @@ streamlit
 google-generativeai
 langchain
 python-dotenv
-os
