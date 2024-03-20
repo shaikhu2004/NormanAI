@@ -4,6 +4,13 @@ load_dotenv()
 from langchain_google_genai import ChatGoogleGenerativeAI
 import streamlit as st
 import os
+import random
+import time
+
+def streamSim(sentence):
+    for word in sentence.split():
+        yield word + " "
+        time.sleep(0.05)
 
 llm = ChatGoogleGenerativeAI(model="gemini-pro")
 
@@ -18,21 +25,25 @@ st.header("Gemini LLM App")
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
-input = st.text_input("What would you like to ask me? :", key=input)
-submit = st.button("Ask")
+for role,text in st.session_state['chat_history']:
+    with st.chat_message(role):
+        st.markdown(text)
 
-if submit and input:
+if input := st.chat_input("What would you like to ask me?", key=input):
+    with st.chat_message("You"):
+        st.markdown(input)
+
+if input:
     response = ask(input)
-    #
+    with st.chat_message("Bot"):
+        st.write_stream(streamSim(response))
+
     st.session_state['chat_history'].append(("You", input))
-    st.subheader("Response: ")
-    st.write(response)
     st.session_state['chat_history'].append(("Bot", response))
 
-st.subheader("Chat History")
 
-for role,text in st.session_state['chat_history']:
-    st.write(f"{role}: {text}")
+
+
 
 
 
