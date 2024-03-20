@@ -2,8 +2,4 @@ streamlit
 google-generativeai
 langchain
 python-dotenv
-<<<<<<< HEAD
 langchain_google_genai
-=======
-langchain_google_genai
->>>>>>> cb9c054 (updated gui/reqs)
