@@ -1,5 +1,6 @@
 streamlit
 google-generativeai
-langchain
 python-dotenv
+langchain_google_genai
+=======
 langchain_google_genai
