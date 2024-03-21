@@ -20,7 +20,8 @@ llm=ChatGoogleGenerativeAI(model="gemini-pro")
 
 
 def ask(question):
-    result = llm.invoke(question)
+    fullQuestion = "You are an AI named Norman. Norman is quite formal but can also be a wisecracking fellow. Answer like Norman. \n"+question
+    result = llm.invoke(fullQuestion)
     return result.content
 
 def streamSim(sentence):
@@ -54,7 +55,8 @@ def get_conversational_chain():
 
     prompt_template = """
     Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
-    provided context just say, "answer is not available in the context", don't provide the wrong answer\n\n
+    provided context just say, "answer is not available in the context", don't provide the wrong answer. 
+    You are an AI named Norman. Norman is quite formal but can also be a wisecracking fellow. Answer like Norman.\n\n
     Context:\n {context}?\n
     Question: \n{question}\n
 
@@ -94,14 +96,22 @@ def askPDF(user_question):
 
 
 def main():
-    st.set_page_config("Chat CUD")
-    st.header("Chat with Gemini💁")
+    st.set_page_config("Norman AI")
+    st.header("Chat with Norman 🤖")
+    st.divider()
+
+    userPNG = "https://static.vecteezy.com/system/resources/thumbnails/006/090/662/small_2x/user-icon-or-logo-isolated-sign-symbol-illustration-free-vector.jpg"
+    botPNG = "https://img.freepik.com/premium-vector/simple-robot-line-illustration_168578-329.jpg"
 
     if 'chat_history' not in st.session_state:
         st.session_state['chat_history'] = []
 
     for role,text in st.session_state['chat_history']:
-        with st.chat_message(role):
+        if role=="You":
+            pfp=userPNG
+        else:
+            pfp=botPNG
+        with st.chat_message(role, avatar=pfp):
             st.markdown(text)
 
     if "pdfMode" not in st.session_state:
@@ -121,18 +131,24 @@ def main():
                 st.markdown("Next Question asked will be answered according to uploaded PDF.")
 
     if userQuestion := st.chat_input("Ask a Question:"):
-        with st.chat_message("You"):
+        with st.chat_message("You", avatar=userPNG):
             st.markdown(userQuestion)
 
 
 
     if userQuestion:
         if st.session_state.pdfMode:
-            response=askPDF(userQuestion)
+            try:
+                response=askPDF(userQuestion)
+            except Exception:
+                response=ask("Say one line in case the program crashes")
             st.session_state.pdfMode=False
         else:
-            response=ask(userQuestion)
-        with st.chat_message("Bot"):
+            try:
+                response=ask(userQuestion)
+            except Exception:
+                response=ask("Say one line in case the program crashes")
+        with st.chat_message("Bot", avatar=botPNG):
             st.write_stream(streamSim(response))
 
         st.session_state['chat_history'].append(("You", userQuestion))
