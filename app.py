@@ -10,6 +10,8 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import time
+import requests
+from io import BytesIO
 
 load_dotenv()
 os.getenv("GOOGLE_API_KEY")
@@ -29,34 +31,41 @@ def streamSim(sentence):
         yield word + " "
         time.sleep(0.05)
 
-def get_pdf_text(pdf_docs):
+def getPDFText(PDFDocs):
     text=""
-    for pdf in pdf_docs:
+    for pdf in PDFDocs:
         pdf_reader= PdfReader(pdf)
         for page in pdf_reader.pages:
             text+= page.extract_text()
     return  text
 
+def urlPDF(pdfURL):
+    response = requests.get(pdfURL)
+    pdfFile = BytesIO(response.content)
+    return pdfFile
 
 
-def get_text_chunks(text):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
-    chunks = text_splitter.split_text(text)
+
+
+def getTextChunks(text):
+    textSplitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+    chunks = textSplitter.split_text(text)
     return chunks
 
 
-def get_vector_store(text_chunks):
+def getVectorStore(text_chunks):
     embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
 
-def get_conversational_chain():
+def getConvoChain():
 
     prompt_template = """
+    You are an AI named Norman. Norman is quite formal but can also be a wisecracking fellow. Answer like Norman.
     Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
     provided context just say, "answer is not available in the context", don't provide the wrong answer. 
-    You are an AI named Norman. Norman is quite formal but can also be a wisecracking fellow. Answer like Norman.\n\n
+    \n\n
     Context:\n {context}?\n
     Question: \n{question}\n
 
@@ -76,10 +85,10 @@ def get_conversational_chain():
 def askPDF(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
     
-    new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    docs = new_db.similarity_search(user_question)
+    newDB = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+    docs = newDB.similarity_search(user_question)
 
-    chain = get_conversational_chain()
+    chain = getConvoChain()
 
     
     response = chain(
@@ -103,10 +112,10 @@ def main():
     userPNG = "https://static.vecteezy.com/system/resources/thumbnails/006/090/662/small_2x/user-icon-or-logo-isolated-sign-symbol-illustration-free-vector.jpg"
     botPNG = "https://img.freepik.com/premium-vector/simple-robot-line-illustration_168578-329.jpg"
 
-    if 'chat_history' not in st.session_state:
-        st.session_state['chat_history'] = []
+    if 'chatHistory' not in st.session_state:
+        st.session_state['chatHistory'] = []
 
-    for role,text in st.session_state['chat_history']:
+    for role,text in st.session_state['chatHistory']:
         if role=="You":
             pfp=userPNG
         else:
@@ -119,16 +128,28 @@ def main():
 
     with st.sidebar:
         st.title("Menu:")
-        pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
-        
-        if st.button("Submit & Process"):
-            st.session_state.pdfMode = True
-            with st.spinner("Processing..."):
-                raw_text = get_pdf_text(pdf_docs)
-                text_chunks = get_text_chunks(raw_text)
-                get_vector_store(text_chunks)
-                st.success("Done")
-                st.markdown("Next Question asked will be answered according to uploaded PDF.")
+        pdfDocs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
+        pdfURL = st.text_input("Enter PDF URL")
+
+        st.session_state.pdfMode = True
+        with st.spinner("Processing..."):
+            if st.button("Submit & Process"):
+
+                    if pdfDocs and pdfURL:
+                        st.warning("Please remove either the file or the URL as Norman can only process one at a time.")
+                    elif pdfDocs:
+                            raw_text = getPDFText(pdfDocs)
+                    elif pdfURL:
+                            pdf_file = urlPDF(pdfURL)
+                            raw_text = getPDFText([pdf_file])
+                    else:
+                            st.error("Please upload PDFs or provide a PDF URL.")
+                            return
+                
+                    text_chunks = getTextChunks(raw_text)
+                    getVectorStore(text_chunks)
+                    st.success("Done")
+                    st.markdown("Next Question asked will be answered according to uploaded PDF.")
 
     if userQuestion := st.chat_input("Ask a Question:"):
         with st.chat_message("You", avatar=userPNG):
@@ -151,8 +172,8 @@ def main():
         with st.chat_message("Bot", avatar=botPNG):
             st.write_stream(streamSim(response))
 
-        st.session_state['chat_history'].append(("You", userQuestion))
-        st.session_state['chat_history'].append(("Bot", response))
+        st.session_state['chatHistory'].append(("You", userQuestion))
+        st.session_state['chatHistory'].append(("Bot", response))
     
 
 
