@@ -63,8 +63,8 @@ def getConvoChain():
 
     prompt_template = """
     You are an AI named Norman. Norman is quite formal but can also be a wisecracking fellow. Answer like Norman.
-    Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
-    provided context just say, "answer is not available in the context", don't provide the wrong answer. 
+    Answer the question from the provided context if possible, make sure to provide all the details.
+    If the answer if not in the context, still answer the question generally but say that you couldnt find the answer in the context.
     \n\n
     Context:\n {context}?\n
     Question: \n{question}\n
@@ -73,7 +73,7 @@ def getConvoChain():
     """
 
     model = ChatGoogleGenerativeAI(model="gemini-pro",
-                             temperature=0.3)
+                             temperature=0.7)
 
     prompt = PromptTemplate(template = prompt_template, input_variables = ["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
@@ -127,13 +127,18 @@ def main():
         st.session_state.pdfMode = False
 
     with st.sidebar:
-        st.title("Menu:")
+        st.title("PDF Menu:")
+        if st.session_state.pdfMode==True:
+                st.markdown("PDF Mode is ON.")
+        else:
+                st.markdown("PDF Mode is OFF.")
         pdfDocs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
         pdfURL = st.text_input("Enter PDF URL")
 
         
         with st.spinner("Processing..."):
-            if st.button("Submit & Process"):
+
+            if st.button("Enter PDF Mode"):
                     st.session_state.pdfMode = True
 
                     if pdfDocs and pdfURL:
@@ -149,8 +154,12 @@ def main():
                 
                     text_chunks = getTextChunks(raw_text)
                     getVectorStore(text_chunks)
-                    st.success("Done")
-                    st.markdown("Next Question asked will be answered according to uploaded PDF.")
+                    st.markdown("You are now in PDF Mode. All Questions asked will only be answered according to the uploaded PDF.")
+
+        if st.session_state.pdfMode==True:
+            if st.button("Stop PDF Mode"):
+                st.session_state.pdfMode = False
+            
 
     if userQuestion := st.chat_input("Ask a Question:"):
         with st.chat_message("You", avatar=userPNG):
@@ -164,7 +173,6 @@ def main():
                 response=askPDF(userQuestion)
             except Exception:
                 response=ask("Say one line in case the program crashes")
-            st.session_state.pdfMode=False
         else:
             try:
                 response=ask(userQuestion)
