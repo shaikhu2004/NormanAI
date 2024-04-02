@@ -44,14 +44,10 @@ def urlPDF(pdfURL):
     pdfFile = BytesIO(response.content)
     return pdfFile
 
-
-
-
 def getTextChunks(text):
     textSplitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
     chunks = textSplitter.split_text(text)
     return chunks
-
 
 def getVectorStore(text_chunks):
     embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
@@ -62,8 +58,18 @@ def getVectorStore(text_chunks):
 def getConvoChain():
 
     prompt_template = """
-    You are an AI named Norman. Norman is quite formal but can also be a wisecracking fellow. Answer like Norman.
-    Answer the question from the provided context if possible, make sure to provide all the details.
+    - Please provide thorough and structured answers, avoiding shortcuts and ensuring accuracy.
+- Format your responses in markdown for better readability.
+- When explaining steps or processes, provide detailed instructions.
+- Always clearly indicate the user prompt for each question.
+- Generate responses without including labels such as 'User Prompt:' and 'Bot Response:'.
+- Avoid duplicating the user prompt in your response.
+- Sometimes you will be asked to respond to prompts that may not be in the form of a question or order; just respond accordingly.
+- If the prompt contains non-English characters or words, just respond that you can't understand it.
+
+Please keep these guidelines in mind when generating your responses, and make sure to provide steps if you used any.
+
+Your context and questions are as follows:
     \n\n
     Context:\n {context}?\n
     Question: \n{question}\n
@@ -131,7 +137,7 @@ def main():
                 st.markdown("PDF Mode is ON.")
         else:
                 st.markdown("PDF Mode is OFF.")
-        pdfDocs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True)
+        pdfDocs = st.file_uploader("Upload your PDF Files and Click on the Enter PDF Mode Button", accept_multiple_files=True)
         pdfURL = st.text_input("Enter PDF URL")
 
         
