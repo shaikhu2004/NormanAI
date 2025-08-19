@@ -18,7 +18,7 @@ os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
-llm=ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
+llm=ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest")
 
 
 def ask(question):
